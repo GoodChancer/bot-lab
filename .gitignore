@@ -1,7 +1,14 @@
+# Secrets and server settings
+config.php
+deploy.conf
 .env
+
+# Runtime data (database, avatars, log)
+data/
+
+# Dependencies and caches
+vendor/
 venv/
-__pycache__/
+.phpunit.cache/
+.phpunit.result.cache
 .DS_Store
-dev/server.conf
-web/vendor/
-web/composer.lock

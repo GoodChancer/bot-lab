@@ -1,0 +1,11 @@
+# Copy to deploy.conf (not committed) and fill in. Used by dev/deploy.sh.
+SSH_KEY=~/.ssh/id_ed25519
+SSH_PORT=22
+SSH_TARGET=user@example.com
+# App code, config.php and data/ live here, relative to your home folder (keep it outside the web root):
+REMOTE_APP_DIR=bot-lab
+# The web folder that should serve public/ (relative to your home folder):
+REMOTE_PUBLIC_DIR=public_html/bots
+# How to run Composer on the server:
+REMOTE_COMPOSER=composer
+SITE_URL=https://example.com/bots

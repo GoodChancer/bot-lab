@@ -1,0 +1,9 @@
+# Only the studio pages, Slack endpoints and static assets are reachable.
+Options -Indexes
+DirectoryIndex index.php
+<FilesMatch "^(_boot|app-root)\.php$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

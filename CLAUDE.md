@@ -1,36 +1,25 @@
-# Slackbot
+# Bot Lab
 
-Personal Slack AI agents, each a separate Slack app with its own name and pixel-art icon.
+Bot Lab is a self-hosted PHP web app for designing AI Slack bots: generate a persona and avatar with Claude or OpenAI, crop the face, then create and install the Slack app through Slack's API. Public repo (portfolio project); keep personal server details out of committed files.
+
+## Stack and layout
+- PHP 8.2+, Composer, SQLite (PDO), libsodium, GD, plain JS (no build). Runs on shared hosting.
+- `public/` is the only web-facing folder: `index.php` (studio shell), `api.php` (JSON actions, owner session + CSRF), `events.php?bot=<slug>` (Slack Events API), `oauth.php` (install callback), `assets/` (app.js, cropper.js, app.css).
+- `src/`: `Config`, `Db`, `Crypto`, `Auth`, `Settings`, `Bots`, `Reply`, `Log`; `Ai/` (Provider interface, ClaudeProvider via official `anthropic-ai/sdk`, OpenAiProvider via REST, Generator); `Slack/` (Events, Manifest, Apps, WebApi).
+- `config.php` (created by `php bin/setup.php`) holds keys, owner password hash, encryption key, models. Never commit it, `deploy.conf`, `data/` or `.env`.
+
+## Conventions
+- Slack: Events API only (no Socket Mode; shared hosting forbids long-running processes). Answer Slack within 3 s via `Events::finishResponse()`, then reply.
+- Secrets in the DB are encrypted (`Bots::setSecret`, `Settings::setSecret`); `Bots::public()` is what the UI may see.
+- Models: chat defaults `claude-haiku-5-5` / `gpt-5-mini`; generation `claude-opus-5-5` / `gpt-5`; images `gpt-image-2`. Claude avatars are a 32x32 pixel grid (rendered with GD) or SVG (sanitized by `Generator::cleanSvg`).
+- Slack icons: square PNG, 512–2000 px; pixel art is upscaled with nearest-neighbor in the cropper.
+- User-facing text: plain, friendly, short.
+
+## Commands
+- Tests: `vendor/bin/phpunit`
+- Local: `php -S localhost:8765 -t public` (also `studio` in `.claude/launch.json`); Slack features need the deployed HTTPS copy.
+- Moving the studio's URL: deploy `public/` to the new place first, then `php bin/change-url.php https://new/url` on the server (updates config.php and every linked Slack app's event + redirect URLs).
+- Deploy: `dev/deploy.sh` (settings in `deploy.conf`, see `deploy.conf.example`). Server log: `data/studio.log` in the app folder.
 
 ## Characters
-- **Fixel Fox**: suggests how to improve and fix things.
-- **Doughbert** (the chef): creative, contributes creative ideas.
-- **Judgemental Duck**: gives blunt, harsh criticism (specific, not cruel).
-
-## Plan
-- Free Slack workspace; one Slack app per character (3 of the 10 free app slots).
-- Live version: PHP on idwants.com (Namecheap shared hosting) using Slack's web request mode (Events API). Shared hosting forbids always-running processes, so no Socket Mode there.
-- `bot.py` (Python, Slack Bolt, Socket Mode) is the local alternative. It only works if an app's Socket Mode is turned back on.
-- Each character = its own system prompt; all share one Anthropic API key and model (a small, cheap model like Haiku).
-- Conversation memory: fetch recent DM history and send it with each request.
-- Secrets (2 Slack tokens per app + Anthropic API key) go in a `.env` file, never in code. `.env` must be in `.gitignore`.
-- Character art goes in `art/`. Slack icons: square, at least 512x512; upscale pixel art with nearest-neighbor scaling.
-
-## Website version (live)
-- Code in `web/`: `events.php` (the only public file), `lib.php`, `characters.json` (prompts, shared with `bot.py`).
-- Slack Request URLs: `https://idwants.com/slackbot/events.php?bot=fox|chef|duck`. Every request's Slack signature is checked.
-- Answers Slack immediately (3-second limit), then calls Claude and posts the reply in the same request (`litespeed_finish_request`).
-- Deploy code: `dev/deploy.sh` (rsync to `~/public_html/slackbot/`, composer install on the server, smoke check).
-- Secrets: `dev/push-config.sh` builds `~/slackbot-config.php` on the server from `.env` (outside the web root, mode 600). Rerun after changing `.env`.
-- Log: `~/slackbot.log` on the server. SSH settings: `dev/server.conf` (copied from IdWants appdesk; not committed).
-- Model: `claude-haiku-5-5` at low effort (set `CLAUDE_MODEL` in `.env` and push config to change it).
-
-## Running locally instead
-- `bot.py` runs every character with bot + app tokens in `.env` (template: `.env.example`). Needs Socket Mode on in the Slack app.
-- Setup: `python3 -m venv venv && venv/bin/pip install -r requirements.txt`, then `venv/bin/python bot.py`.
-
-## Icon tool
-- `python3 tools/crop_server.py` → http://localhost:8765 (also the `crop-tool` entry in `.claude/launch.json`). Stdlib only.
-- Crop a square around each character's face and save a 512x512 nearest-neighbor icon to `art/icons/<name>-icon.png`.
-- Pick each character's Slack background color; saved to `art/icons/colors.json`.
-- To add a character, add an entry to `SPRITES` in `tools/crop.html`.
+The original bots, now rows in the studio database: **Fixel Fox** (suggests fixes), **Doughbert** (creative chef), **Judgemental Duck** (blunt, specific criticism). Art in `art/`.

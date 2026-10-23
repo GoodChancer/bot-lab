@@ -2,9 +2,14 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "crop-tool",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["tools/crop_server.py"],
+      "name": "studio",
+      "runtimeExecutable": "php",
+      "runtimeArgs": [
+        "-S",
+        "localhost:8765",
+        "-t",
+        "public"
+      ],
       "port": 8765
     }
   ]
