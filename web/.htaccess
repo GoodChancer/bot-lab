@@ -1,0 +1,5 @@
+# Only events.php is public. Everything else here is code or data.
+Options -Indexes
+<FilesMatch "^(?!events\.php$).*$">
+    Require all denied
+</FilesMatch>

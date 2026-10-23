@@ -1,0 +1,14 @@
+{
+    "name": "idwants/slackbot",
+    "description": "Slack character bots (Fixel Fox, Doughbert, Judgemental Duck)",
+    "type": "project",
+    "require": {
+        "php": ">=8.2",
+        "anthropic-ai/sdk": "*",
+        "guzzlehttp/guzzle": "^7.9"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}
