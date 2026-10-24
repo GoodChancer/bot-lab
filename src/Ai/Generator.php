@@ -16,17 +16,42 @@ final class Generator
         'none' => ['label' => 'No style', 'claude' => 'svg',
             'prompt' => 'Character portrait. Head and shoulders, facing the viewer.',
             'svg' => 'Draw in whatever illustration style best suits the character.'],
+        'cartoon' => ['label' => 'Cartoon', 'claude' => 'svg',
+            'prompt' => 'Modern 2D cartoon character portrait in the style of a contemporary animated series: bold clean dark outlines, flat bright colors with one soft cel-shaded shadow tone, '
+                . 'big expressive eyes, appealing rounded shapes, lots of personality. Anthropomorphic: give the character a face and expressive features even if it is an object, plant, element or animal. '
+                . 'Head and shoulders (or the upper body), facing the viewer, readable as a small app icon.',
+            'svg' => 'Draw a modern 2D cartoon character: bold dark outlines (stroke-width 6-10), flat bright fills with one darker shade per color for simple cel shading, big expressive eyes and a clear facial expression. Give it a face even if it is an object or element.'],
         'pixel' => ['label' => 'Pixel art', 'claude' => 'grid',
             'prompt' => 'Retro 32x32 pixel art character portrait, bold black outline, limited palette, chunky pixels, like a classic 16-bit RPG sprite. Head and shoulders, facing the viewer.'],
         'vector' => ['label' => 'Flat vector', 'claude' => 'svg',
             'prompt' => 'Flat vector mascot illustration, simple geometric shapes, bold clean colors, no gradients, like a friendly app mascot. Head and shoulders, facing the viewer.',
             'svg' => 'Draw a friendly flat-vector mascot: simple shapes, bold flat colors, no outlines or only very subtle ones.'],
+        'flat' => ['label' => 'Flat tech', 'claude' => 'svg',
+            'prompt' => 'Flat 2D vector illustration in the style of modern tech-startup spot illustrations (Freepik, Dribbble, corporate Memphis): '
+                . 'solid flat color fills only. Absolutely no gradients, no textures, no 3D rendering, no realistic lighting, no metallic or glossy reflections, no soft or drop shadows. '
+                . 'Simplified geometric shapes and smooth curves, slightly exaggerated playful proportions. '
+                . 'A bold saturated palette of at most 5 colors, such as royal blue, coral orange, sunny yellow, teal and white. '
+                . 'Thin dark outlines only on small details, if any. A few small decorative accents like sparkles, dots or tiny leaves around the character. '
+                . 'Turn any materials (metal, glass, stone, fur) into simple flat color shapes. '
+                . 'Anthropomorphic, with a simple friendly face. Head and shoulders (or upper body), facing the viewer.',
+            'svg' => 'Draw a flat 2D vector illustration like modern tech-startup spot art (Freepik, Dribbble): solid flat fills only (no gradients, no shading except one flat darker shape where needed), '
+                . 'simplified geometric shapes with playful proportions, a bold palette of at most 5 colors (royal blue, coral orange, sunny yellow, teal, white), '
+                . 'no outlines or only thin dark lines on small details, and a few small sparkles or dots as accents. A simple friendly face.'],
+        'doodle' => ['label' => 'Doodle', 'claude' => 'svg',
+            'prompt' => 'Notion-style hand-drawn doodle of the character: confident black ink lines with slight hand-drawn wobble, a little cross-hatching for shading, '
+                . 'mostly white fill with one muted accent color, simple and charming, like an illustration in a modern workplace app. '
+                . 'Anthropomorphic, with an expressive face. Head and shoulders, facing the viewer.',
+            'svg' => 'Draw in a Notion-style hand-drawn doodle: black ink strokes (stroke-width 5-7, round caps) with a slightly hand-drawn feel, white fills, a few short hatching lines for shading, and one muted accent color.'],
         'line' => ['label' => 'Line art', 'claude' => 'svg',
             'prompt' => 'Bold monoline line-art character portrait, thick uniform dark outlines with rounded ends, one or two flat accent colors, lots of clean negative space, like a modern sticker or app icon. Head and shoulders, facing the viewer.',
             'svg' => 'Draw in bold monoline line art: thick uniform dark strokes (stroke-width 10-14, round caps and joins), mostly unfilled shapes, plus one or two flat accent colors.'],
         'lowpoly' => ['label' => 'Low poly', 'claude' => 'svg',
             'prompt' => 'Low-poly geometric character portrait made of flat-shaded triangles and facets, crisp edges, soft light from one side. Head and shoulders, facing the viewer.',
             'svg' => 'Draw in a low-poly geometric style: build the character only from flat-colored triangles and polygons (<polygon>), about 40-120 facets, with lighter facets on one side and darker on the other to suggest a light source.'],
+        'glass' => ['label' => 'Soft glass', 'claude' => null,
+            'prompt' => 'The character as a premium soft-glass 3D icon: frosted translucent glass material, smooth soft gradients, gentle inner glow and subtle highlights, '
+                . 'rounded simplified forms, calm modern lighting, like a polished Apple-style app icon. Anthropomorphic, with a simple friendly face. '
+                . 'Head and shoulders, facing the viewer.'],
         'painted' => ['label' => 'Painted', 'claude' => null,
             'prompt' => 'Storybook watercolor and gouache character portrait, soft brush texture, warm light. Head and shoulders, facing the viewer.'],
         'clay' => ['label' => '3D clay', 'claude' => null,

@@ -7,7 +7,7 @@ namespace Studio;
 final class Config
 {
     /** Bump when the studio's pages change, so open browser tabs reload instead of running old code. */
-    public const VERSION = '16';
+    public const VERSION = '18';
 
     private static ?array $data = null;
 

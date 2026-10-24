@@ -25,13 +25,13 @@ Bot Lab is self-hosted. It's one small PHP app that runs on almost any web host 
 - **Tweak instead of starting over.** Type a request ("shorter and more sarcastic"), or use quick buttons like *Funnier* or *More professional*. Only what you asked for changes. Regenerate and Undo are always there, and every field stays editable by hand.
 
 ### Give it a face
-- **Seven avatar styles:**
+- **Eleven avatar styles:**
 
   | Style | Claude | OpenAI |
   |---|:-:|:-:|
   | Pixel art | ✅ draws a 32×32 grid, rendered to PNG | ✅ |
-  | Flat vector, Line art, Low poly, No style | ✅ writes SVG | ✅ |
-  | Painted, 3D clay | | ✅ |
+  | Cartoon, Flat tech, Doodle, Flat vector, Line art, Low poly, No style | ✅ writes SVG | ✅ |
+  | Soft glass, Painted, 3D clay | | ✅ |
 
   Claude can't generate images, so for these styles it draws the art as data instead: a pixel grid or SVG markup. You can also upload your own picture.
 - **Face cropper.** Drag a square over the face and see the finished icon live. Pixel art is scaled up with nearest-neighbor so it stays crisp. Your original image and crop are saved, so you can recrop any time.
