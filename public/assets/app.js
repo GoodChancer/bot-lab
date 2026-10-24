@@ -188,7 +188,10 @@
               <label>Slack card color</label>
               <p class="muted small" style="margin:0 0 10px">The banner on your bot's profile card in Slack. Its name and description sit on top in white.</p>
               <div class="row color-row"><label class="swatch-input" id="card-swatch" title="Pick a color"><input type="color" id="card-color" aria-label="Slack card color"></label><input type="text" class="hex" id="card-hex" maxlength="7" aria-label="Slack card color hex"></div>
-              <p class="error small" id="card-warn" hidden></p>
+              <div id="card-art-colors" hidden>
+                <p class="muted small" style="margin:10px 0 0">Or pick a color from the art:</p>
+                <div class="swatches" id="card-swatches"></div>
+              </div>
             </div>
             <div class="slack-card" id="card-preview">
               <canvas id="card-avatar" width="112" height="112"></canvas>
@@ -271,12 +274,6 @@
       cropper.setBackground(hex);
       if (byUser && cropper.img) avatarChanged = true;
     };
-    // Contrast of white text on the card color (WCAG); under 3 is hard to read.
-    const whiteContrast = (hex) => {
-      const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
-      const [r, g, bl] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-      return 1.05 / (0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(bl) + 0.05);
-    };
     function updateCardPreview() {
       $('#card-preview').style.background = b.background_color;
       $('#card-name').textContent = b.name || 'Bot name';
@@ -284,9 +281,6 @@
       const c = $('#card-avatar').getContext('2d');
       c.clearRect(0, 0, 112, 112);
       if (typeof cropper !== 'undefined' && cropper.img) c.drawImage($('#crop-out'), 0, 0, 112, 112);
-      const warn = whiteContrast(b.background_color) < 3;
-      $('#card-warn').textContent = warn ? 'White text is hard to read on this color. Slack shows the name and description in white, so pick a darker color.' : '';
-      $('#card-warn').hidden = !warn;
     }
     const counters = { name: [1, 35], short_description: [1, 139], long_description: [174, 4000] };
     const updateCounts = () => Object.entries(counters).forEach(([f, [min, max]]) => {
@@ -317,6 +311,20 @@
     // Cropper
     const cropper = new window.Cropper($('#crop-src'), $('#crop-out'), $('#swatches'), (hex) => setIconBg(hex, true));
     cropper.onRender = updateCardPreview;
+    // The Slack card color can use the art's colors too.
+    cropper.onPalette = (colors) => {
+      const box = $('#card-swatches');
+      box.innerHTML = '';
+      colors.forEach((hex) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.style.background = hex;
+        btn.title = hex;
+        btn.addEventListener('click', () => setCard(hex));
+        box.appendChild(btn);
+      });
+      $('#card-art-colors').hidden = !colors.length;
+    };
     setIconBg(iconBg(), false);
     setCard(b.background_color);
     updateCounts();

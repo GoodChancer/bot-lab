@@ -113,12 +113,16 @@
         count[hex] = (count[hex] || 0) + 1;
       }
       this.swatchesEl.innerHTML = '';
-      Object.keys(count).sort((a, b) => count[b] - count[a]).slice(0, 18).forEach((hex) => {
+      // White (and near-white) isn't offered as a background color.
+      const isWhite = (hex) => [1, 3, 5].every((i) => parseInt(hex.slice(i, i + 2), 16) >= 225);
+      this.palette = Object.keys(count).filter((hex) => !isWhite(hex)).sort((a, b) => count[b] - count[a]).slice(0, 18);
+      this.palette.forEach((hex) => {
         const b = document.createElement('button');
         b.type = 'button'; b.title = hex; b.style.background = hex;
         b.onclick = () => this.onPickColor && this.onPickColor(hex);
         this.swatchesEl.appendChild(b);
       });
+      if (this.onPalette) this.onPalette(this.palette); // other color pickers can offer the same colors
     }
 
     bindPointer() {
