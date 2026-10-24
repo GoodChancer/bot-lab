@@ -116,4 +116,29 @@ final class StudioTest extends TestCase
         $this->assertSame(['web_fetch_20260209'], array_column($opus, 'type'));
         $this->assertSame([], \Studio\Ai\ClaudeProvider::webTools('claude-haiku-5-5', []));
     }
+
+    public function testRemovesFullCanvasBackgroundOnly(): void
+    {
+        $svg = '<svg viewBox="0 0 512 512"><rect width="512" height="512" fill="#123"/><rect x="0" y="0" width="100%" height="100%" fill="#fff"></rect><rect x="40" y="40" width="100" height="100" fill="#f00"/></svg>';
+        $out = Generator::removeBackgroundRect($svg);
+        $this->assertStringNotContainsString('#123', $out);
+        $this->assertStringNotContainsString('#fff', $out);
+        $this->assertStringContainsString('#f00', $out);
+    }
+
+    public function testRemoveBackgroundCutsOutFlatColorFromEdges(): void
+    {
+        // Magenta background, a white "character" in the middle, and a magenta dot inside it that must survive.
+        $img = imagecreatetruecolor(100, 100);
+        imagefill($img, 0, 0, imagecolorallocate($img, 250, 5, 250));
+        imagefilledellipse($img, 50, 50, 60, 60, imagecolorallocate($img, 255, 255, 255));
+        imagefilledellipse($img, 50, 50, 6, 6, imagecolorallocate($img, 255, 0, 255));
+        ob_start();
+        imagepng($img);
+        $out = imagecreatefromstring(Generator::removeBackground((string) ob_get_clean()));
+        $alpha = fn (int $x, int $y) => (imagecolorat($out, $x, $y) >> 24) & 0x7f;
+        $this->assertSame(127, $alpha(2, 2), 'background is transparent');
+        $this->assertSame(0, $alpha(30, 50), 'character stays opaque');
+        $this->assertSame(0, $alpha(50, 50), 'background-colored detail inside the character is kept');
+    }
 }

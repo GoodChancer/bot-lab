@@ -105,6 +105,9 @@ final class ClaudeProvider implements Provider
         } catch (AuthenticationException $e) {
             throw new AiError('Claude rejected the API key: ' . $e->getMessage(), 'The Anthropic API key was rejected. Check config.php.');
         } catch (APIStatusException $e) {
+            if (str_contains(strtolower($e->getMessage()), 'credit balance')) {
+                throw new AiError('Claude billing: ' . $e->getMessage(), 'The Anthropic account is out of credits. Add credits at console.anthropic.com → Billing.');
+            }
             throw new AiError('Claude API error: ' . $e->getMessage());
         } catch (APIConnectionException $e) {
             throw new AiError('Could not reach Claude: ' . $e->getMessage(), "I couldn't reach the Claude API. Try again in a bit.");

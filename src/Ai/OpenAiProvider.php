@@ -45,15 +45,24 @@ final class OpenAiProvider implements Provider
         return $parsed;
     }
 
-    /** Returns PNG bytes. */
-    public function image(string $prompt, string $model): string
+    /**
+     * Returns PNG bytes. With $transparent, asks for a transparent background; models that can't do that
+     * (like gpt-image-2) throw TransparencyUnsupported so the caller can use another approach.
+     */
+    public function image(string $prompt, string $model, bool $transparent = false): string
     {
-        $data = $this->post('images/generations', [
-            'model' => $model,
-            'prompt' => $prompt,
-            'size' => '1024x1024',
-            'n' => 1,
-        ], 180);
+        $request = ['model' => $model, 'prompt' => $prompt, 'size' => '1024x1024', 'n' => 1];
+        if ($transparent) {
+            $request['background'] = 'transparent';
+        }
+        try {
+            $data = $this->post('images/generations', $request, 180);
+        } catch (AiError $e) {
+            if ($transparent && str_contains(strtolower($e->getMessage()), 'transparent')) {
+                throw new TransparencyUnsupported($e->getMessage());
+            }
+            throw $e;
+        }
         $b64 = $data['data'][0]['b64_json'] ?? null;
         if (!is_string($b64)) {
             throw new AiError('OpenAI returned no image.', 'The image generator returned nothing. Try again.');
@@ -94,8 +103,13 @@ final class OpenAiProvider implements Provider
         $data = json_decode((string) $raw, true) ?: [];
         if ($status >= 400) {
             $msg = $data['error']['message'] ?? "HTTP $status";
+            $code = (string) ($data['error']['code'] ?? $data['error']['type'] ?? '');
             $friendly = match (true) {
                 $status === 401 => 'The OpenAI API key was rejected. Check config.php.',
+                // OpenAI uses 429 both for "slow down" and for "out of credits".
+                $code === 'insufficient_quota' || str_contains(strtolower($msg), 'credit') || str_contains(strtolower($msg), 'quota')
+                    => 'The OpenAI account is out of credits. Add credits at platform.openai.com → Settings → Billing.',
+                $status === 403 => 'OpenAI refused the request: ' . $msg,
                 $status === 429 => "I'm getting too many requests right now. Try again in a minute.",
                 default => 'Something went wrong talking to my brain. Check the studio log.',
             };

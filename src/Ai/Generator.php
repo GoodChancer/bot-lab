@@ -121,15 +121,131 @@ final class Generator
         }
 
         if ($useOpenAi) {
-            /** @var OpenAiProvider $openai */
-            $openai = Ai::provider('openai');
-            $prompt = $info['prompt'] . "\n\nCharacter: $description\n\nPlain solid $background background filling the whole image. Centered, with some space around the character. No text, letters, or watermark.";
-            return ['mime' => 'image/png', 'data' => base64_encode($openai->image($prompt, (string) Config::get('models.image.openai')))];
+            return ['mime' => 'image/png', 'data' => base64_encode(self::openAiAvatar($info['prompt'], $description, $background))];
         }
 
         return $info['claude'] === 'grid'
             ? ['mime' => 'image/png', 'data' => base64_encode(self::pixelGrid($description, $background))]
             : ['mime' => 'image/svg+xml', 'data' => base64_encode(self::svg($info['svg'], $description, $background))];
+    }
+
+    // ---- OpenAI images, always with a transparent background -------------------------------
+
+    /** Magenta "green screen" for image models that can't make transparent backgrounds. */
+    private const KEY_COLOR = '#FF00FF';
+
+    private static function openAiAvatar(string $stylePrompt, string $description, string $background): string
+    {
+        /** @var OpenAiProvider $openai */
+        $openai = Ai::provider('openai');
+        $model = (string) Config::get('models.image.openai');
+        $base = $stylePrompt . "\n\nCharacter: $description\n\nCentered, with some space around the character. No text, letters, or watermark.";
+        try {
+            return $openai->image($base . "\n\nTransparent background: no backdrop, scenery, frame or shadow behind the character.", $model, true);
+        } catch (TransparencyUnsupported) {
+            // Paint a flat key color behind the character, then cut it out here.
+            $png = $openai->image($base . "\n\nBackground: one perfectly flat, solid, pure magenta (" . self::KEY_COLOR . ") color filling everything behind the character, "
+                . 'with no gradient, texture, shadow, glow, floor or scenery. Do not use magenta or hot pink anywhere on the character itself.', $model);
+            return self::removeBackground($png, pockets: 60); // safe: the character was told not to use magenta
+        }
+    }
+
+    /**
+     * Makes the flat background of an image transparent. Starts from the edges and spreads through
+     * pixels close to the background color, so colors inside the character are left alone.
+     * The edge between the two gets partial transparency for a smooth outline.
+     */
+    public static function removeBackground(string $png, int $tolerance = 70, int $soft = 50, int $pockets = 0): string
+    {
+        $src = imagecreatefromstring($png);
+        if (!$src) {
+            throw new AiError('Image could not be read.', 'The image generator returned something unreadable. Try again.');
+        }
+        $w = imagesx($src);
+        $h = imagesy($src);
+        $img = imagecreatetruecolor($w, $h);
+        imagealphablending($img, false);
+        imagesavealpha($img, true);
+        imagecopy($img, $src, 0, 0, 0, 0, $w, $h);
+
+        // Background color: the average of the four corners.
+        $corners = [[0, 0], [$w - 1, 0], [0, $h - 1], [$w - 1, $h - 1]];
+        $sum = [0, 0, 0];
+        foreach ($corners as [$x, $y]) {
+            $c = imagecolorat($img, $x, $y);
+            $sum[0] += ($c >> 16) & 255;
+            $sum[1] += ($c >> 8) & 255;
+            $sum[2] += $c & 255;
+        }
+        [$kr, $kg, $kb] = array_map(fn ($v) => $v / 4, $sum);
+        $dist = function (int $c) use ($kr, $kg, $kb): float {
+            return sqrt(((($c >> 16) & 255) - $kr) ** 2 + ((($c >> 8) & 255) - $kg) ** 2 + (($c & 255) - $kb) ** 2);
+        };
+
+        // Edge pixels are part background: pull the background's tint back out of them (magenta = too much red and blue).
+        $despill = function (int $c) use ($kr, $kg, $kb): int {
+            [$r, $g, $b] = [($c >> 16) & 255, ($c >> 8) & 255, $c & 255];
+            if ($kr > $kg && $kb > $kg) {
+                $excess = max(0, ($r + $b) / 2 - $g) * 0.6;
+                $r = (int) max(0, $r - $excess);
+                $b = (int) max(0, $b - $excess);
+            }
+            return ($r << 16) | ($g << 8) | $b;
+        };
+
+        // Flood fill from every edge pixel through background-like pixels.
+        $seen = str_repeat("\0", $w * $h); // one byte per pixel keeps memory low on big images
+        $stack = [];
+        for ($x = 0; $x < $w; $x++) {
+            $stack[] = $x;
+            $stack[] = ($h - 1) * $w + $x;
+        }
+        for ($y = 0; $y < $h; $y++) {
+            $stack[] = $y * $w;
+            $stack[] = $y * $w + $w - 1;
+        }
+        $limit = $tolerance + $soft;
+        while ($stack) {
+            $i = array_pop($stack);
+            if ($seen[$i] !== "\0") {
+                continue;
+            }
+            $seen[$i] = "\1";
+            $x = $i % $w;
+            $y = intdiv($i, $w);
+            $c = imagecolorat($img, $x, $y);
+            $d = $dist($c);
+            if ($d > $limit) {
+                continue; // part of the character
+            }
+            // Fully transparent inside the tolerance, fading to opaque across the soft band.
+            $alpha = $d <= $tolerance ? 127 : (int) round(127 * (1 - ($d - $tolerance) / $soft));
+            imagesetpixel($img, $x, $y, ($alpha << 24) | ($alpha === 127 ? ($c & 0xFFFFFF) : $despill($c)));
+            if ($d > $tolerance) {
+                continue; // edge pixel: don't spread further into the character
+            }
+            if ($x > 0) $stack[] = $i - 1;
+            if ($x < $w - 1) $stack[] = $i + 1;
+            if ($y > 0) $stack[] = $i - $w;
+            if ($y < $h - 1) $stack[] = $i + $w;
+        }
+        // Pockets of background enclosed by the character (between an arm and the body, say) aren't reached
+        // from the edges. Anything that is almost exactly the background color goes too.
+        if ($pockets > 0) {
+            for ($y = 0; $y < $h; $y++) {
+                for ($x = 0; $x < $w; $x++) {
+                    if ($seen[$y * $w + $x] === "\0") {
+                        $c = imagecolorat($img, $x, $y);
+                        if ($dist($c) <= $pockets) {
+                            imagesetpixel($img, $x, $y, (127 << 24) | ($c & 0xFFFFFF));
+                        }
+                    }
+                }
+            }
+        }
+        ob_start();
+        imagepng($img);
+        return (string) ob_get_clean();
     }
 
     // ---- Claude draws pixel art as a grid ---------------------------------------------------
@@ -234,9 +350,24 @@ final class Generator
             . 'Use only basic shapes and paths (circle, ellipse, rect, polygon, path, g). No text, images, scripts, filters or external references.';
         $prompt = "Draw an avatar (head and shoulders, facing the viewer, centered) of:\n\n<character>\n$description\n</character>\n\n"
             . "Style: $styleGuide\n\n"
-            . "Use viewBox=\"0 0 512 512\" and start with a full-size rect filled $background as the background. Leave about 40px of space around the character.";
+            . "Use viewBox=\"0 0 512 512\". Don't draw a background: leave everything behind the character transparent (no full-size rect, no backdrop shapes, no scenery). "
+            . "It will be placed on a $background background, so make sure the character stands out against that color. Leave about 40px of space around the character.";
         $data = Ai::provider('anthropic')->json($system, $prompt, $schema, Ai::generateModel('anthropic'), 'low');
-        return self::cleanSvg((string) ($data['svg'] ?? ''));
+        return self::removeBackgroundRect(self::cleanSvg((string) ($data['svg'] ?? '')));
+    }
+
+    /** Drops rectangles that cover the whole canvas, in case a background was drawn anyway. */
+    public static function removeBackgroundRect(string $svg): string
+    {
+        return (string) preg_replace_callback('/<rect\b[^>]*?\/?>(?:\s*<\/rect>)?/i', function (array $m): string {
+            $tag = $m[0];
+            $attr = function (string $name) use ($tag): ?string {
+                return preg_match('/\s' . $name . '\s*=\s*["\']([^"\']*)["\']/i', $tag, $a) ? trim($a[1]) : null;
+            };
+            $full = fn (?string $v) => $v !== null && in_array(rtrim($v, 'px'), ['512', '100%'], true);
+            $origin = fn (?string $v) => $v === null || in_array(rtrim($v, 'px'), ['0', '-0'], true);
+            return $full($attr('width')) && $full($attr('height')) && $origin($attr('x')) && $origin($attr('y')) ? '' : $tag;
+        }, $svg);
     }
 
     /** Keeps only drawing elements: no scripts, event handlers, external links or embedded content. */
