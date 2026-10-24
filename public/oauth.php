@@ -8,7 +8,7 @@ use Studio\Auth;
 use Studio\Log;
 use Studio\Slack\Apps;
 
-if (!Auth::check()) {
+if (!Auth::isOwner()) {
     http_response_code(403);
     exit('Sign in to the studio first, then start the install again.');
 }

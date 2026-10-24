@@ -7,6 +7,7 @@ return [
     'secret_key' => '',                          // set by bin/setup.php; encrypts stored Slack tokens
     'anthropic_api_key' => '',                   // https://console.anthropic.com
     'openai_api_key' => '',                      // https://platform.openai.com (optional; enables image styles)
+    'demo_mode' => false,                        // true: sign-in page offers a read-only demo for visitors
     'models' => [
         'chat' => ['anthropic' => 'claude-haiku-5-5', 'openai' => 'gpt-5-mini'],
         'generate' => ['anthropic' => 'claude-opus-5-5', 'openai' => 'gpt-5'],

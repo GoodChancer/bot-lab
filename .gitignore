@@ -1,7 +1,8 @@
-# Secrets and server settings
-config.php
-deploy.conf
-.env
+# Secrets and server settings (top level only: on case-insensitive disks "config.php" would also hide src/Config.php)
+/config.php
+/deploy.conf
+/deploy.*.conf
+/.env
 
 # Runtime data (database, avatars, log)
 data/

@@ -47,6 +47,13 @@ $csrf = $signedIn ? Auth::csrfToken() : '';
     <button class="btn primary" type="submit">Sign in</button>
     <p class="error" id="login-error"></p>
   </form>
+  <?php if (Auth::demoEnabled()): ?>
+  <div class="card demo-invite">
+    <h2>Just looking?</h2>
+    <p class="muted">See everything the owner sees: the bots, the editor, avatars, settings and more. Nothing can be changed, so click around freely.</p>
+    <button class="btn" type="button" id="demo-login">View the demo</button>
+  </div>
+  <?php endif; ?>
 <?php endif; ?>
 </main>
 <div id="toast" role="status"></div>

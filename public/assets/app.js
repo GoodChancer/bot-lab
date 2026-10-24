@@ -18,7 +18,11 @@
     });
     let data = {};
     try { data = await res.json(); } catch (e) { /* not JSON */ }
-    if (!res.ok) throw new Error(data.error || 'Request failed (' + res.status + ').');
+    if (!res.ok) {
+      const err = new Error(data.error || 'Request failed (' + res.status + ').');
+      err.demo = !!data.demo;
+      throw err;
+    }
     return data;
   }
 
@@ -37,7 +41,7 @@
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> ' + esc(label);
     try { return await fn(); }
-    catch (e) { toast(e.message, true); }
+    catch (e) { toast(e.message, !e.demo); }
     finally { btn.disabled = false; btn.innerHTML = old; }
   }
 
@@ -79,6 +83,7 @@
       try { tried = sessionStorage.getItem('botlab-reloaded'); sessionStorage.setItem('botlab-reloaded', state.version); } catch (e) { /* storage blocked */ }
       if (tried !== state.version) { location.replace(location.pathname + '?v=' + encodeURIComponent(state.version) + location.hash); return; }
     }
+    showDemoBanner();
     const parts = (path || '/').split('/').filter(Boolean);
     window.scrollTo(0, 0);
     if (parts[0] === 'new') return editor(null);
@@ -561,7 +566,7 @@
         const msg = existing.app_id
           ? `Delete ${existing.name}? This also deletes its Slack app for everyone in the workspace. This can't be undone.`
           : `Delete ${existing.name}?`;
-        if (!confirm(msg)) return;
+        if (!state.demo && !confirm(msg)) return;
         busy(e.currentTarget, 'Deleting…', async () => {
           await api('delete_bot', { id: existing.id });
           toast('Deleted.');
@@ -658,6 +663,21 @@
     });
   }
 
+  // ---- Demo -------------------------------------------------------------------------------
+
+  function showDemoBanner() {
+    let bar = $('#demo-bar');
+    if (!state.demo) { if (bar) bar.remove(); return; }
+    if (bar) return;
+    bar = document.createElement('div');
+    bar.id = 'demo-bar';
+    bar.className = 'demo-bar';
+    bar.innerHTML = `<span><b>Demo</b> · You're seeing exactly what the owner sees. Buttons are turned off, so click around freely.</span>
+      <span class="demo-links"><a href="https://github.com/GoodChancer/bot-lab" target="_blank" rel="noopener">Get Bot Lab on GitHub</a><button class="btn small" type="button" id="demo-exit">Leave demo</button></span>`;
+    document.querySelector('header.top').after(bar);
+    $('#demo-exit').addEventListener('click', async () => { await api('logout'); location.href = './'; });
+  }
+
   // ---- Login ------------------------------------------------------------------------------
 
   const login = $('#login');
@@ -667,6 +687,15 @@
       try {
         const data = await api('login', { password: login.password.value });
         csrf = data.csrf;
+        location.reload();
+      } catch (err) { $('#login-error').textContent = err.message; }
+    });
+  }
+  const demoLogin = $('#demo-login');
+  if (demoLogin) {
+    demoLogin.addEventListener('click', async () => {
+      try {
+        await api('demo_login');
         location.reload();
       } catch (err) { $('#login-error').textContent = err.message; }
     });

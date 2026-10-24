@@ -91,6 +91,8 @@ You need:
 4. **Connect Slack:** sign in and open **Settings**. Paste an [app configuration token](https://api.slack.com/apps): the refresh token from "Your App Configuration Tokens". Bot Lab keeps it fresh automatically.
 5. **Make a bot:** go to **New bot**, describe a role, generate, crop, then choose **Create in Slack** and approve the install.
 
+**Want a public showcase?** Set `'demo_mode' => true` in a copy's `config.php`. Its sign-in page then offers **View the demo**: visitors see every page exactly as the owner does, but the server refuses every change and makes no AI calls. Run it as a separate copy with its own bots (`dev/deploy.sh demo` reads `deploy.demo.conf`).
+
 **Moving to a new address later?** Deploy `public/` to the new place, then run `php bin/change-url.php https://new/address`. It updates the config and every bot's Slack app.
 
 ### Costs

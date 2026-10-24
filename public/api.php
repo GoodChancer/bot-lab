@@ -73,11 +73,21 @@ if ($action === 'login') {
     $error = Auth::login((string) ($in['password'] ?? ''));
     $error ? respond(['error' => $error], 401) : respond(['ok' => true, 'csrf' => Auth::csrfToken()]);
 }
+if ($action === 'demo_login') {
+    $error = Auth::loginDemo();
+    $error ? respond(['error' => $error], 403) : respond(['ok' => true, 'csrf' => Auth::csrfToken()]);
+}
 if (!Auth::check()) {
     respond(['error' => 'Sign in first.'], 401);
 }
 if (!Auth::checkCsrf($_SERVER['HTTP_X_CSRF_TOKEN'] ?? null)) {
     respond(['error' => 'Your session expired. Reload the page.'], 403);
+}
+
+// Demo visitors can look at everything but change nothing (and make no AI calls).
+const DEMO_ALLOWED = ['state', 'logout'];
+if (Auth::isDemo() && !Auth::isOwner() && !in_array($action, DEMO_ALLOWED, true)) {
+    respond(['error' => "This is a demo, so this button doesn't do anything here. Install Bot Lab yourself to try it for real.", 'demo' => true], 403);
 }
 
 set_time_limit(300);
@@ -101,6 +111,7 @@ try {
                 'slack_ready' => Apps::hasConfigToken(),
                 'base_url' => Config::baseUrl(),
                 'version' => Config::VERSION,
+                'demo' => Auth::isDemo() && !Auth::isOwner(),
             ]);
 
         case 'generate_profile':
